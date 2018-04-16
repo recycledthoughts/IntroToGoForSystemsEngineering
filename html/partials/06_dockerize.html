@@ -1,7 +1,77 @@
 <section>
   <h3>Dockerize Go</h3>
+  <p>
+We can minimize the size and exposure of our Docker images by deploying Go applicaitons onto the Scratch base image.
+  </p>
 
   <aside class="notes">
-    Thoughts should go here.
+Staticly compile our Go applications for minimal Docker images.
   </asside>
+</section>
+<section></section>
+<section></section>
+<section></section>
+<section></section>
+<section></section>
+<section></section>
+<section></section>
+<section>
+  <pre><code class="hljs" data-trim contenteditable>
+package main
+
+import (
+	"net/http"
+	"log"
+	"fmt"
+)
+
+func main() {
+	port := 8080
+
+	http.HandleFunc("/helloworld", helloWorldHandler)
+
+	log.Printf("Server starting on port %v\n", port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", port), nil))
+}
+
+func helloWorldHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "Hello World\n")
+}
+    </code></pre>
+</section>
+<section>
+  <pre><code class="hljs" data-trim contenteditable>
+CGO_ENABLED=0 GOOS=linux GOARCH=386 go build -a -installsuffix cgo -ldflags '-s' -o server
+  </code></pre>
+</section>
+<section>
+  <pre><code class="hljs" data-trim contenteditable>
+FROM scratch
+
+MAINTAINER Richard C Isaacson<richard.c.isaacson@gmail.com>
+
+ARG GIT_COMMIT=unspecified
+LABEL git_commit=$GIT_COMMIT
+
+EXPOSE 8080
+
+COPY ./server /
+
+CMD ["/server"]
+  </code></pre>
+</section>
+<section>
+  <pre><code class="hljs" data-trim contenteditable>
+#!/usr/bin/env bash
+
+CGO_ENABLED=0 GOOS=linux GOARCH=386 go build -a -installsuffix cgo -ldflags '-s' -o server \
+&& chmod 755 server \
+&& docker build -t server-local-build --build-arg GIT_COMMIT=$(git log -1 --format=%h) . \
+&& rm server
+  </code></pre>
+</section>
+<section>
+  <pre><code class="hljs" data-trim contenteditable>
+docker run -it --rm -p 8080:8080/tcp server-local-build
+  </code></pre>
 </section>
